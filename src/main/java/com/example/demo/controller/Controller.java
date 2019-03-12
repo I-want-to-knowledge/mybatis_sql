@@ -19,7 +19,7 @@ import java.util.Date;
 @org.springframework.stereotype.Controller
 public class Controller {
 
-    @Autowired
+    @Resource
     private UserStateService userStateService;
 
     @RequestMapping(value = "/hello", method = RequestMethod.GET, produces = "application/json; charset=utf-8")
