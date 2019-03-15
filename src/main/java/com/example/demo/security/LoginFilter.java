@@ -69,6 +69,7 @@ public class LoginFilter extends AbstractAuthenticationProcessingFilter {
         }
 
         // 实现一个Authentication
+        // TODO
         // username password 的 Authentication 实现
         AbstractAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
 

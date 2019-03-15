@@ -1,6 +1,8 @@
 package com.example.demo.config;
 
 import com.example.demo.security.*;
+import com.example.demo.security.sms.SmsCodeAuthenticationProvider;
+import com.example.demo.security.sms.authentication.SmsCodeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,9 +37,18 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private Logger LOG = LoggerFactory.getLogger(SecurityConfig.class);
 
-    @Qualifier("defaultAuthenticationServiceImpl")
-    @Autowired(required = false)
+    /*@Qualifier("defaultAuthenticationServiceImpl")
+    @Autowired(required = false)*/
     private UserDetailsService userDetailsService;
+
+    private SmsCodeService smsCodeService;
+
+    public SecurityConfig(
+            SmsCodeService smsCodeService,
+            @Qualifier("defaultAuthenticationServiceImpl") UserDetailsService userDetailsService) {
+        this.smsCodeService = smsCodeService;
+        this.userDetailsService = userDetailsService;
+    }
 
     @Bean
     public TokenManager tokenManager() {
@@ -60,19 +71,26 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             corsConfig.setMaxAge(1800L);
             return corsConfig;
         })
+
+                // 配置拦截或不拦截指定接口
                 .and()
                 .authorizeRequests()
                 // 指定不需要过滤的接口
                 .antMatchers("/Login/**").permitAll()
                 // .antMatchers("/xxx/yyy").permitAll()
                 .anyRequest().authenticated()
+
+                // 访问时拦截器
                 .and()
-                // 登录
+                // 登录拦截器
                 .addFilterBefore(new LoginFilter(authManager(), tokenManager), UsernamePasswordAuthenticationFilter.class)
                 // 检查令牌
                 .addFilterBefore(new AuthenticationFilter(tokenManager), UsernamePasswordAuthenticationFilter.class)
+
+                // 登出事件
                 .logout()
                 .addLogoutHandler(new LogoutTokenHandler(tokenManager)).logoutSuccessHandler(new LogoutSuccessResultHandler())
+
                 .and()
                 // 安全框架不会主动创建会话，也不会利用会话获取安全上下文
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
@@ -88,8 +106,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         }
         LOG.info("Using user details service: {}", userDetailsService.getClass());
 
+        // 添加供应商，处理过滤器
         // 验证信息的容器
-        auth.authenticationProvider(new AuthenticationProvider(userDetailsService, PasswordUtils.encoder()));
+        auth.authenticationProvider(new AuthenticationProvider(userDetailsService, PasswordUtils.encoder()))
+                .authenticationProvider(new SmsCodeAuthenticationProvider(smsCodeService));
     }
 
     // 避免自动配置

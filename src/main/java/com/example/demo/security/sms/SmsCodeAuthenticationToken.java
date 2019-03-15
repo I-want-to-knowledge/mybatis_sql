@@ -20,10 +20,10 @@ public class SmsCodeAuthenticationToken extends AbstractAuthenticationToken {
     private final Object principal;
     private Object credentials;
 
-    public SmsCodeAuthenticationToken(String mobile) {
+    public SmsCodeAuthenticationToken(String mobile, String smsCode) {
         super(null);
         this.principal = mobile;
-        this.credentials = null;
+        this.credentials = smsCode;
         setAuthenticated(false);
     }
 

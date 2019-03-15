@@ -1,5 +1,6 @@
 package com.example.demo.security.sms;
 
+import com.example.demo.security.sms.authentication.SmsCodeService;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -14,13 +15,17 @@ import org.springframework.security.core.userdetails.UserDetailsService;
  */
 public class SmsCodeAuthenticationProvider implements AuthenticationProvider {
 
-    private UserDetailsService userDetailsService;
+    private SmsCodeService smsCodeService;
+
+    public SmsCodeAuthenticationProvider(SmsCodeService smsCodeService) {
+        this.smsCodeService = smsCodeService;
+    }
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         SmsCodeAuthenticationToken token = (SmsCodeAuthenticationToken) authentication;
         //
-        UserDetails userDetails = userDetailsService.loadUserByUsername((String) token.getPrincipal());
+        UserDetails userDetails = smsCodeService.findSmsCode((String) token.getPrincipal());
         if (userDetails == null) {
             throw new IllegalArgumentException("UserDetails is required!");
         }
@@ -36,11 +41,7 @@ public class SmsCodeAuthenticationProvider implements AuthenticationProvider {
         return SmsCodeAuthenticationToken.class.isAssignableFrom(authentication);
     }
 
-    public UserDetailsService getUserDetailsService() {
-        return userDetailsService;
-    }
-
-    public void setUserDetailsService(UserDetailsService userDetailsService) {
-        this.userDetailsService = userDetailsService;
+    public SmsCodeService getUserDetailsService() {
+        return smsCodeService;
     }
 }
