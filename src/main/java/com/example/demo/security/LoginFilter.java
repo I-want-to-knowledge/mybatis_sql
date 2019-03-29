@@ -1,12 +1,12 @@
 package com.example.demo.security;
 
-import com.alibaba.fastjson.JSON;
-import com.example.demo.controller.Result;
-import com.example.demo.security.exception.AuthenticateFailedException;
+import com.example.demo.security.response.AuthenticationResultHandler;
+import com.example.demo.security.sms.SmsCodeAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.event.InteractiveAuthenticationSuccessEvent;
 import org.springframework.security.core.Authentication;
@@ -16,11 +16,9 @@ import org.springframework.security.web.authentication.AbstractAuthenticationPro
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.HashMap;
 
 /**
  * 登录过滤器
@@ -29,108 +27,121 @@ import java.util.HashMap;
  * @since 2019-03-08 16:53
  */
 public class LoginFilter extends AbstractAuthenticationProcessingFilter {
-    private static Logger LOG = LoggerFactory.getLogger(LoginFilter.class);
-    private static final String REQUEST_PATH = "/login";
-    private static final String REQUEST_METHOD = "POST";
-    private final TokenManager tokenManager;
-    // private static final String mobileCode = "mobile";
+  private static Logger LOG = LoggerFactory.getLogger(LoginFilter.class);
+  private static final String REQUEST_PATH = "/login";
+  private static final String REQUEST_METHOD = "POST";
+  private static final String MOBILE_LOGIN = "mobile";
+  private static final String USERNAME_LOGIN = "username";
 
-    public LoginFilter(AuthenticationManager authMatcher, TokenManager tokenManager) {
-        super(new AntPathRequestMatcher(REQUEST_PATH, REQUEST_METHOD));
-        if (authMatcher == null) {
-            throw new IllegalArgumentException("RequestMatcher is required!");
-        }
-        if (tokenManager == null) {
-            throw new IllegalArgumentException("TokenManager is required!");
-        }
-        setAuthenticationManager(authMatcher);
-        this.tokenManager = tokenManager;
+  private AuthenticationResultHandler authenticationResultHandler;
+
+  public LoginFilter(AuthenticationManager authMatcher, AuthenticationResultHandler authenticationResultHandler) {
+    super(new AntPathRequestMatcher(REQUEST_PATH, REQUEST_METHOD));
+    if (authMatcher == null) {
+      throw new IllegalArgumentException("RequestMatcher is required!");
+    }
+    setAuthenticationManager(authMatcher);
+    if (authenticationResultHandler == null) {
+      throw new IllegalArgumentException("AuthenticationResultHandler is required!");
+    }
+    this.authenticationResultHandler = authenticationResultHandler;
+  }
+
+  @Override
+  public Authentication attemptAuthentication(
+          HttpServletRequest httpServletRequest,
+          HttpServletResponse httpServletResponse) throws AuthenticationException {
+
+    // if (shouldIntercept(httpServletRequest)) { }
+
+    // 登录区分
+    String loginType = httpServletRequest.getParameter("loginType");
+
+    if (USERNAME_LOGIN.equals(loginType)) {
+      // 获取页面信息
+      String username = isNull(httpServletRequest.getParameter("username"));
+      String password = isNull(httpServletRequest.getParameter("password"));
+
+      // 实现一个Authentication
+      // username password 的 Authentication 实现
+      AbstractAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
+
+      // 设置用户信息写入本地信息
+      token.setDetails(authenticationDetailsSource.buildDetails(httpServletRequest));
+
+      // 验证传递的身份验证对象
+      return getAuthenticationManager().authenticate(token);
+    } else if (MOBILE_LOGIN.equals(loginType)) {
+      // 获取页面信息
+      String mobile = isNull(httpServletRequest.getParameter("mobile"));
+      String authCode = isNull(httpServletRequest.getParameter("authCode"));
+
+      // 实现一个Authentication
+      AbstractAuthenticationToken token = new SmsCodeAuthenticationToken(mobile, authCode);
+      token.setDetails(authenticationDetailsSource.buildDetails(httpServletRequest));// 写入本地信息
+      return getAuthenticationManager().authenticate(token);
     }
 
-    @Override
-    public Authentication attemptAuthentication(
-            HttpServletRequest httpServletRequest,
-            HttpServletResponse httpServletResponse) throws AuthenticationException, IOException, ServletException {
+    // 认证无效
+    throw new ProviderNotFoundException("Authentication loginType invalid or missing");
+  }
 
-        // if (shouldIntercept(httpServletRequest)) { }
+  /**
+   * null转空
+   *
+   * @param str 字符串
+   * @return 空字符串
+   */
+  private String isNull(String str) {
+    if (str == null) {
+      return "";
+    } else {
+      return str.trim();
+    }
+  }
 
-        // 获取页面信息
-        String username = httpServletRequest.getParameter("username");
-        String password = httpServletRequest.getParameter("password");
+  /**
+   * 拦截
+   *
+   * @param httpServletRequest 请求体
+   * @return 是否拦截
+   */
+  private boolean shouldIntercept(HttpServletRequest httpServletRequest) {
+    return false;
+  }
 
-        // 判断值是否为空
-        if (username == null) {
-            username = "";
-        } else {
-            username = username.trim();
-        }
-        if (password == null) {
-            password = "";
-        }
-
-        // 实现一个Authentication
-        // TODO
-        // username password 的 Authentication 实现
-        AbstractAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
-
-        // 设置用户信息写入本地信息
-        token.setDetails(authenticationDetailsSource.buildDetails(httpServletRequest));
-
-        // 验证传递的身份验证对象
-        return getAuthenticationManager().authenticate(token);
+  @Override
+  protected void successfulAuthentication(
+          HttpServletRequest request, HttpServletResponse response,
+          FilterChain chain, Authentication authResult) throws IOException {
+    if (logger.isDebugEnabled()) {
+      logger.debug("Authentication success. Updating SecurityContextHolder to contain: "
+              + authResult);
     }
 
-    /**
-     * 拦截
-     * @param httpServletRequest 请求体
-     * @return 是否拦截
-     */
-    private boolean shouldIntercept(HttpServletRequest httpServletRequest) {
-        return false;
+    SecurityContextHolder.getContext().setAuthentication(authResult);
+
+    // Fire event
+    if (this.eventPublisher != null) {
+      eventPublisher.publishEvent(new InteractiveAuthenticationSuccessEvent(
+              authResult, this.getClass()));
     }
 
-    @Override
-    protected void successfulAuthentication(
-            HttpServletRequest request, HttpServletResponse response,
-            FilterChain chain, Authentication authResult) throws IOException, ServletException {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Authentication success. Updating SecurityContextHolder to contain: "
-                    + authResult);
-        }
+    // 返回用户信息
+    authenticationResultHandler.afterSuccessful(response, authResult);
+  }
 
-        SecurityContextHolder.getContext().setAuthentication(authResult);
+  @Override
+  protected void unsuccessfulAuthentication(
+          HttpServletRequest request, HttpServletResponse response,
+          AuthenticationException failed) throws IOException {
+    SecurityContextHolder.clearContext();
 
-        // Fire event
-        if (this.eventPublisher != null) {
-            eventPublisher.publishEvent(new InteractiveAuthenticationSuccessEvent(
-                    authResult, this.getClass()));
-        }
-
-        // 生成token
-        Token token = tokenManager.createToken(authResult);
-        response.addHeader(AuthenticationFilter.TOKEN_HEADER, token.getId());
-        response.setCharacterEncoding("UTF-8");
-        response.setContentType("application/json");
-
-        User user = (User) authResult.getPrincipal();
-        HashMap<String, Object> userMap = new HashMap<>();
-        userMap.put("id", user.getId());
-        userMap.put("username", user.getUsername());
-
-        // 身份认证成功，返回用户信息给客户端
-        response.getWriter().write(JSON.toJSONString(Result.success(userMap)));
+    if (LOG.isDebugEnabled()) {
+      logger.debug("Authentication request failed:" + failed.toString(), failed);
     }
 
-    @Override
-    protected void unsuccessfulAuthentication(
-            HttpServletRequest request, HttpServletResponse response,
-            AuthenticationException failed) throws IOException, ServletException {
-        SecurityContextHolder.clearContext();
-
-        if (LOG.isDebugEnabled()) {
-            logger.debug("Authentication request failed:" + failed.toString(), failed);
-        }
-
-        throw new AuthenticateFailedException();
-    }
+    // throw new AuthenticateFailedException();
+    authenticationResultHandler.afterUnsuccessful(response, failed);
+  }
 }

@@ -10,9 +10,12 @@ import org.springframework.security.core.userdetails.UserDetails;
  */
 public interface SmsCodeService {
     /**
-     * 获取短信验证码
+     * 验证短信验证码
      * @param mobile 手机
-     * @return 用户详情
+     * @param validationCode 验证码
+     * @return 认证是否成功
      */
-    UserDetails findSmsCode(String mobile);
+    default boolean authenticate(String mobile, String validationCode) {
+        return false;
+    }
 }

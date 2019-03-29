@@ -32,7 +32,7 @@ public class Result {
         return failure(code, null);
     }
 
-    private static Result failure(int code, String message) {
+    public static Result failure(int code, String message) {
         return failure(code, message, null);
     }
 

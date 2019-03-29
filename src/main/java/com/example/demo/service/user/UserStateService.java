@@ -1,4 +1,4 @@
-package com.example.demo.service;
+package com.example.demo.service.user;
 
 import java.util.List;
 import com.example.demo.model.UserState;

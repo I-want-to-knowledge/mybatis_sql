@@ -15,7 +15,7 @@ public class SmsCodeAuthenticationToken extends AbstractAuthenticationToken {
     private static final long serialVersionUID = 2383092775910246006L;
 
     /**
-     * 手机号
+     * 手机号或者用户信息
      */
     private final Object principal;
     private Object credentials;
@@ -27,7 +27,13 @@ public class SmsCodeAuthenticationToken extends AbstractAuthenticationToken {
         setAuthenticated(false);
     }
 
-    public SmsCodeAuthenticationToken(Collection<? extends GrantedAuthority> authorities, Object principal, Object credentials) {
+    /**
+     * 短信验证构造
+     * @param authorities 用户角色信息
+     * @param principal 手机号或者用户信息
+     * @param credentials 用户手机验证码
+     */
+    SmsCodeAuthenticationToken(Collection<? extends GrantedAuthority> authorities, Object principal, Object credentials) {
         super(authorities);
         this.principal = principal;
         this.credentials = credentials;

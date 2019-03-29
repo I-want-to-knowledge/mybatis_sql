@@ -1,17 +1,17 @@
-package com.example.demo.service.impl;
+package com.example.demo.service.user.impl;
 
 import com.example.demo.dao.UserStateMapper;
 import com.example.demo.model.UserState;
-import com.example.demo.service.UserStateService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.demo.service.user.UserStateService;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.List;
 
 @Service
 public class UserStateServiceImpl implements UserStateService{
 
-    @Autowired
+    @Resource
     private UserStateMapper userStateMapper;
 
     @Override
