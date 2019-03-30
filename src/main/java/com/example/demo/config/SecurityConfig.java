@@ -141,11 +141,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     new DefaultTokenAuthenticationResultHandlerImpl(tokenManager)),// 默认的Token认证实现
             UsernamePasswordAuthenticationFilter.class)
             // 检查令牌
-            .addFilterBefore(new AuthenticationFilter(tokenManager), LoginFilter.class)
+            .addFilterBefore(new AuthenticationFilter(tokenManager), LoginFilter.class);
 
-            // 登出事件
-            .logout()
-            .addLogoutHandler(new LogoutTokenHandler(tokenManager)).logoutSuccessHandler(new LogoutSuccessResultHandler())
+    // 登出事件
+    LogoutHandlerAdapter logoutHandlerAdapter = new LogoutSuccessResultHandler(tokenManager);
+    http.logout()
+            .addLogoutHandler(logoutHandlerAdapter)
+            .logoutSuccessHandler(logoutHandlerAdapter)
 
             .and()
             // 安全框架不会主动创建会话，也不会利用会话获取安全上下文

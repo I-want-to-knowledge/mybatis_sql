@@ -53,13 +53,14 @@ public class AuthenticationFilter extends OncePerRequestFilter {
 
         // 获取认证信息
         Authentication auth = tokenManager.getAuth(tokenId);
-        if (auth == null) {
-            LOG.error("No authentication of token {}", tokenId);
-            throw new InvalidTokenException();
+        if (auth != null) {
+            // 后续处理有认证信息
+            SecurityContextHolder.getContext().setAuthentication(auth);
         }
+        // throw new InvalidTokenException("No authentication of token");
+        LOG.error("Token expired {}", tokenId);
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
+        // 无认证信息会报异常
         filterChain.doFilter(httpServletRequest, httpServletResponse);
     }
 }

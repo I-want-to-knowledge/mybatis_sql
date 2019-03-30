@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.security.exception.ErrorCode;
 import org.springframework.boot.autoconfigure.web.ErrorProperties;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.autoconfigure.web.servlet.error.AbstractErrorController;
@@ -19,7 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.example.demo.controller.ErrorCode.*;
+import static com.example.demo.security.exception.ErrorCode.*;
 
 /**
  * TODO
