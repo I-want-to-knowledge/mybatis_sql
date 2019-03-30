@@ -1,3 +1,3 @@
 # mybatis_sql   说明文档
-Spring Boot+MySQL+Mybatis+Maven+IDEA（一个简单的数据库增删改查项目）
+Spring Boot+MySQL+Mybatis+Maven+IDEA（增删改查、登录登出、token）
 学习笔记；
